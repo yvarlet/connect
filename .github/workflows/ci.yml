@@ -36,13 +36,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # The build config targets Java 8 (the Java 9+ add-opens/add-exports are
-      # commented out in the build files), so build and test on a JDK 8.
-      - name: Set up JDK 8 (Temurin)
+      # The 4.6.0 baseline is Java 11: javac uses release="11" and the test JVMs
+      # open the JDK internals required by reflection-based suites.
+      - name: Set up JDK 11 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '8'
+          java-version: '11'
 
       # Ant is pre-installed on the runner; ant-optional provides the JUnit task.
       - name: Install Ant JUnit task

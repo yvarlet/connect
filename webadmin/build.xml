@@ -55,7 +55,7 @@
 	</target>
 
 	<target name="compile" depends="jspc">
-		<javac destdir="${build.classes}" debug="true" srcdir="${build.src}">
+		<javac destdir="${build.classes}" debug="true" srcdir="${build.src}" release="11">
 			<classpath refid="compile.classpath" />
 		</javac>
 	</target>
