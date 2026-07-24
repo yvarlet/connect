@@ -145,10 +145,13 @@ jobs:
           path: '**/junit-reports/*.xml'
           if-no-files-found: warn
 
-  # Compiles every module (not just the core chain) under Java 11 to prove the
-  # whole product builds on the new baseline. Compile-only: no tests, no dist
-  # assembly, no jar signing. Each module is built in dependency order so the
-  # dist jars it produces are available to the modules that depend on it.
+  # Builds every module (not just the core chain) under Java 11 to prove the
+  # whole product compiles on the new baseline, via the canonical master build
+  # (server/mirth-build.xml). The build-manager + build-cli + build-webadmin
+  # targets transitively build core, donkey, server (connectors/plugins),
+  # client, manager, CLI and webadmin — and populate server/core-lib — WITHOUT
+  # the create-setup jar signing, the dist assembly or the test run (those are
+  # only in the top-level `build`/`dist` targets, and tests run in the other job).
   full-build:
     name: Full build (compile all, Java 11)
     runs-on: ubuntu-latest
@@ -168,41 +171,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ant-optional
 
-      - name: Compile all modules
+      - name: Build all modules (no sign, no dist, no tests)
+        working-directory: server
         run: |
-          set -uo pipefail
-          failed=()
-          build() {
-            local dir="$1" file="$2" target="$3"
-            echo "::group::$dir ($file $target)"
-            if ( cd "$dir" && ant -f "$file" $target ); then
-              echo "OK $dir"
-            else
-              echo "::error::compile failed for $dir"
-              failed+=("$dir")
-            fi
-            echo "::endgroup::"
-          }
-          # Core chain first (each produces a dist jar consumed downstream)
-          build core-models         build.xml      dist
-          build core-util           build.xml      dist
-          build core-client-base    build.xml      dist
-          build core-client-api     build.xml      dist
-          build core-server-plugins build.xml      dist
-          build core-client         build.xml      dist
-          build core-ui             build.xml      dist
-          build core-client-plugins build.xml      dist
-          build donkey              build.xml      build
-          # Leaf modules
-          build command             build.xml      build
-          build manager             ant-build.xml  compile
-          build generator           build.xml      compile-generator
-          build webadmin            build.xml      compile
-          build server              build.xml      compile
-          build client              ant-build.xml  compile
-          echo "==================================================="
-          if [ ${#failed[@]} -ne 0 ]; then
-            echo "::error::Modules that failed to compile: ${failed[*]}"
-            exit 1
-          fi
-          echo "All modules compiled successfully under Java 11."
+          ant -f mirth-build.xml build-manager build-cli build-webadmin
