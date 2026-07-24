@@ -74,7 +74,7 @@
 
 	<target name="compile" depends="clean, init">
 		<mkdir dir="${classes}" />
-		<javac srcdir="${src}" destdir="${classes}" debug="on" includeAntRuntime="false">
+		<javac srcdir="${src}" destdir="${classes}" debug="on" includeAntRuntime="false" source="11" target="11">
 			<classpath refid="classpath" />
 		</javac>
 
@@ -336,7 +336,7 @@
 		<!-- compile the source -->
 		<mkdir dir="${test_classes}" />
 		
-		<javac srcdir="${test}" destdir="${test_classes}" debug="on" includeAntRuntime="false">
+		<javac srcdir="${test}" destdir="${test_classes}" debug="on" includeAntRuntime="false" source="11" target="11">
 			<classpath refid="testclasspath" />
 		</javac>
 	</target>
