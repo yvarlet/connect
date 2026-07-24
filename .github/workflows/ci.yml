@@ -58,16 +58,20 @@ jobs:
 
       # Build in strict dependency order. Each core-* module produces its dist
       # jar (consumed by later modules); donkey only needs to compile for tests.
+      # Ant is invoked from inside each module directory: the JUnit suites read
+      # test resources via paths relative to the module dir (e.g. tests/...,
+      # ../core-models/tests/...), so the process working directory must be the
+      # module directory for both compilation and tests.
       - name: Compile modules
         run: |
           set -euo pipefail
           for module in core-models core-util core-client-base core-client-api core-server-plugins; do
             echo "::group::ant dist — $module"
-            ant -f "$module/build.xml" dist
+            ( cd "$module" && ant -f build.xml dist )
             echo "::endgroup::"
           done
           echo "::group::ant compile — donkey"
-          ant -f donkey/build.xml compile
+          ( cd donkey && ant -f build.xml compile )
           echo "::endgroup::"
 
       # Run the JUnit suites for the modules that ship tests. test-run does not
@@ -77,7 +81,7 @@ jobs:
           set -uo pipefail
           for module in core-models core-util core-client-base core-server-plugins donkey; do
             echo "::group::ant test-run — $module"
-            ant -f "$module/build.xml" test-run || echo "::warning::ant test-run returned non-zero for $module"
+            ( cd "$module" && ant -f build.xml test-run ) || echo "::warning::ant test-run returned non-zero for $module"
             echo "::endgroup::"
           done
 
