@@ -138,7 +138,6 @@
 	<classpathentry kind="lib" path="lib/aws/metrics-spi-2.15.28.jar"/>
 	<classpathentry kind="lib" path="lib/aws/profiles-2.15.28.jar"/>
 	<classpathentry kind="lib" path="lib/aws/protocol-core-2.15.28.jar"/>
-	<classpathentry kind="lib" path="lib/backport-util-concurrent-Java60-3.1.jar"/>
 	<classpathentry kind="lib" path="lib/classgraph-4.8.53.jar"/>
 	<classpathentry kind="lib" path="lib/commons/commons-collections-3.2.2.jar"/>
 	<classpathentry kind="lib" path="lib/commons/commons-dbcp2-2.0.1.jar"/>
