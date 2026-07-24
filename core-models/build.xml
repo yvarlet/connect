@@ -19,7 +19,7 @@
 	<target name="compile" depends="clean">
 		<mkdir dir="${classes}" />
 
-		<javac srcdir="${src}" destdir="${classes}" debug="on" includeAntRuntime="false" release="11">
+		<javac srcdir="${src}" destdir="${classes}" debug="on" includeAntRuntime="false" source="11" target="11">
 			<classpath refid="classpath" />
 		</javac>
 		
@@ -58,7 +58,7 @@
 		<!-- compile the source -->
 		<mkdir dir="${test_classes}" />
 		
-		<javac srcdir="${test}" destdir="${test_classes}" debug="on" includeAntRuntime="false" release="11">
+		<javac srcdir="${test}" destdir="${test_classes}" debug="on" includeAntRuntime="false" source="11" target="11">
 			<classpath refid="testclasspath" />
 			<!-- Uncomment the following and add additional dashes in front of the arguments to allow Java 9+
 				<compilerarg value="-add-modules" />

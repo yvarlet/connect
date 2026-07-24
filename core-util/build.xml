@@ -21,7 +21,7 @@
 	<target name="compile" depends="clean">
 		<mkdir dir="${classes}" />
 
-		<javac srcdir="${src}" destdir="${classes}" debug="on" includeAntRuntime="false" release="11">
+		<javac srcdir="${src}" destdir="${classes}" debug="on" includeAntRuntime="false" source="11" target="11">
 			<classpath refid="classpath" />
 		</javac>
 		
@@ -71,14 +71,10 @@
 		<!-- compile the source -->
 		<mkdir dir="${test_classes}" />
 		
-		<javac srcdir="${test}" destdir="${test_classes}" debug="on" includeAntRuntime="false" release="11">
+		<javac srcdir="${test}" destdir="${test_classes}" debug="on" includeAntRuntime="false" source="11" target="11">
 			<classpath refid="testclasspath" />
-			<!-- Uncomment the following and add additional dashes in front of the arguments to allow Java 9+
-				<compilerarg value="-add-modules" />
-				<compilerarg value="java.sql.rowset,java.xml.ws" />
-				<compilerarg value="-add-exports" />
-				<compilerarg value="java.sql.rowset/com.sun.rowset=ALL-UNNAMED" />
-			-->
+				<!-- KeyEncryptorTest references com.sun.crypto.provider (JDK internal) -->
+				<compilerarg value="--add-exports=java.base/com.sun.crypto.provider=ALL-UNNAMED" />
 		</javac>
 		
 		<copy todir="${test_classes}">
@@ -110,6 +106,7 @@
 				<jvmarg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED" />
 				<jvmarg value="--add-opens=java.desktop/java.awt.font=ALL-UNNAMED" />
 				<jvmarg value="--add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.trax=ALL-UNNAMED" />
+				<jvmarg value="--add-exports=java.base/com.sun.crypto.provider=ALL-UNNAMED" />
 				<classpath>
 					<path refid="testclasspath" />
 					<dirset dir="${test_classes}"/>
