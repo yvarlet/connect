@@ -113,6 +113,18 @@ jobs:
               print(f"[{status}] {path}: tests={tests} failures={fails} errors={errors}")
               if fails or errors:
                   failed = True
+                  # Surface the failing testcases (message + first stack lines) in the log.
+                  for case in root.iter('testcase'):
+                      for kind in ('error', 'failure'):
+                          node = case.find(kind)
+                          if node is not None:
+                              name = f"{case.get('classname')}.{case.get('name')}"
+                              msg = (node.get('message') or '').strip().splitlines()
+                              msg = msg[0] if msg else node.get('type', '')
+                              body = (node.text or '').strip().splitlines()
+                              print(f"  ↳ {kind.upper()} {name}: {msg}")
+                              for line in body[:6]:
+                                  print(f"      {line.strip()}")
 
           print(f"TOTAL: tests={total_tests} failures={total_fail} errors={total_err}")
           if failed:
