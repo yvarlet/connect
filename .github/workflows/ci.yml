@@ -1,0 +1,130 @@
+name: CI
+
+# Continuous integration for the Mirth Connect 4.6.0 fork.
+#
+# The project builds with Apache Ant. Modules are compiled in dependency order
+# (each produces a dist jar consumed by the next), then their JUnit suites are
+# run. Because the Ant `junit` targets use haltonfailure="false", a failing
+# test does NOT fail Ant on its own, so a final step parses the JUnit XML
+# reports and fails the job on any failure or error.
+#
+# Scope (v1): the backend core chain (models / util / donkey). The Swing client
+# modules and the full server dist/signing pipeline are intentionally out of
+# scope for now and can be added incrementally.
+
+on:
+  push:
+    branches:
+      - development
+      - 'claude/**'
+  pull_request:
+    branches:
+      - development
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to save runner minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & test (core chain)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The build config targets Java 8 (the Java 9+ add-opens/add-exports are
+      # commented out in the build files), so build and test on a JDK 8.
+      - name: Set up JDK 8 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      # Ant is pre-installed on the runner; ant-optional provides the JUnit task.
+      - name: Install Ant JUnit task
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ant-optional
+
+      - name: Show toolchain
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          java -version
+          ant -version
+
+      # Build in strict dependency order. Each core-* module produces its dist
+      # jar (consumed by later modules); donkey only needs to compile for tests.
+      - name: Compile modules
+        run: |
+          set -euo pipefail
+          for module in core-models core-util core-client-base core-client-api core-server-plugins; do
+            echo "::group::ant dist — $module"
+            ant -f "$module/build.xml" dist
+            echo "::endgroup::"
+          done
+          echo "::group::ant compile — donkey"
+          ant -f donkey/build.xml compile
+          echo "::endgroup::"
+
+      # Run the JUnit suites for the modules that ship tests. test-run does not
+      # halt on failure, so failures are detected in the report-analysis step.
+      - name: Run unit tests
+        run: |
+          set -uo pipefail
+          for module in core-models core-util core-client-base core-server-plugins donkey; do
+            echo "::group::ant test-run — $module"
+            ant -f "$module/build.xml" test-run || echo "::warning::ant test-run returned non-zero for $module"
+            echo "::endgroup::"
+          done
+
+      - name: Analyze JUnit reports
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, sys, xml.etree.ElementTree as ET
+
+          reports = glob.glob('**/junit-reports/*.xml', recursive=True)
+          print(f"Found {len(reports)} JUnit report file(s)")
+
+          if not reports:
+              print("::error::No JUnit reports were produced — the test step did not run correctly")
+              sys.exit(1)
+
+          total_tests = total_fail = total_err = 0
+          failed = False
+          for path in sorted(reports):
+              try:
+                  root = ET.parse(path).getroot()
+              except Exception as exc:
+                  print(f"::error::Cannot parse {path}: {exc}")
+                  failed = True
+                  continue
+              tests = int(root.get('tests', 0))
+              fails = int(root.get('failures', 0))
+              errors = int(root.get('errors', 0))
+              total_tests += tests
+              total_fail += fails
+              total_err += errors
+              status = "OK" if (fails == 0 and errors == 0) else "FAIL"
+              print(f"[{status}] {path}: tests={tests} failures={fails} errors={errors}")
+              if fails or errors:
+                  failed = True
+
+          print(f"TOTAL: tests={total_tests} failures={total_fail} errors={total_err}")
+          if failed:
+              print(f"::error::Test suite failed: {total_fail} failure(s), {total_err} error(s)")
+              sys.exit(1)
+          print("All tests passed.")
+          PY
+
+      - name: Upload JUnit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-reports
+          path: '**/junit-reports/*.xml'
+          if-no-files-found: warn
